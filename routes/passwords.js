@@ -24,21 +24,21 @@ router.get('/get-passwords', verifyToken, (req, res) => {
 
 router.post('/add-password', verifyToken, async (req, res) => {
     const userId = req.user.id;
-    const { title, login, password, note } = req.body;
+    const { service, url, email, username, password, note } = req.body;
 
-    if (!title || !password) {
-	return res.status(400).json({ error: 'Le titre et le mot de passe sont obligatoire' });
+    if (!service || !password) {
+	return res.status(400).json({ error: 'Le service et le mot de passe sont obligatoire' });
     }
 
     try {
 	const query = `
-	    INSERT  INTO passwords (user_id, title, login, password, password_hash, note)
-	    VALUES (?, ?, ?, ?, ?, ?)
+	    INSERT  INTO passwords (user_id, service, url, email, username, password, password_hash, note)
+	    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`;
 
 	const hash = await bcrypt.hash(password, 10);
 
-	db.query(query, [userId, title, login || null, password, hash, note || null], (err, result) => {
+	db.query(query, [userId, service, url || null, email || null,  username || null, password, hash, note || null], (err, result) => {
 	    if (err) {
 		return res.status(500).json({ error: 'Erreur lors de l\'enregistrement', details: err });
 	    }
