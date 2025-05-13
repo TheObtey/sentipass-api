@@ -13,10 +13,10 @@ router.get('/get-passwords', verifyToken, (req, res) => {
 	}
 
 	if (results.length === 0) {
-	    return res.status(404).json({ error: 'Aucun mot de passe trouvé' });
+	    return res.status(200).json([]);
 	}
 
-	res.status(201).json({ message: 'Mots de passe récupérés', passwords: results });
+	res.status(200).json(results);
     });
 
 });
