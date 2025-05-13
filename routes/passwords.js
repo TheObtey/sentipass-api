@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middlewares/verifyToken');
 const bcrypt = require('bcrypt');
+const { encrypt, decrypt } = require('../crypto_utils');
 const db = require('../db');
 
 router.get('/get-passwords', verifyToken, (req, res) => {
@@ -16,7 +17,15 @@ router.get('/get-passwords', verifyToken, (req, res) => {
 	    return res.status(200).json([]);
 	}
 
-	res.status(200).json(results);
+	const decryptedResults = results.map(p => {
+  	    const { password_encrypted, ...rest } = p;
+  	    return {
+    		...rest,
+    		password: decrypt(password_encrypted)
+	    };
+	});
+
+	res.status(200).json(decryptedResults);
     });
 
 });
@@ -32,13 +41,13 @@ router.post('/add-password', verifyToken, async (req, res) => {
 
     try {
 	const query = `
-	    INSERT  INTO passwords (user_id, service, url, email, username, password, password_hash, note)
-	    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	    INSERT  INTO passwords (user_id, service, url, email, username, password_encrypted, note)
+	    VALUES (?, ?, ?, ?, ?, ?, ?)
 	`;
 
-	const hash = await bcrypt.hash(password, 10);
+	const encryptedPassword = encrypt(password);
 
-	db.query(query, [userId, service, url || null, email || null,  username || null, password, hash, note || null], (err, result) => {
+	db.query(query, [userId, service, url || null, email || null,  username || null, encryptedPassword, note || null], (err, result) => {
 	    if (err) {
 		return res.status(500).json({ error: 'Erreur lors de l\'enregistrement', details: err });
 	    }
