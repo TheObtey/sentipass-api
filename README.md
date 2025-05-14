@@ -5,7 +5,7 @@ Une API REST légère et sécurisée pour gérer des mots de passe centralisés.
 Permettre à une application mobile (ou tout client HTTP) d’enregistrer, récupérer, modifier et supprimer des mots de passe, tout en assurant :
 
 - Une authentification stateless par JWT
-- Le hachage sécurisé des mots de passe utilisateurs via bcrypt
+- Chiffrement des mots de passe utilisateurs via AES
 - La séparation des responsabilités (Express, MariaDB, reverse proxy Apache)
 
 ## 🤔 Pourquoi ce projet ?
@@ -13,7 +13,7 @@ Permettre à une application mobile (ou tout client HTTP) d’enregistrer, récu
 En prenant un VPS, l’idée était de passer à une base distante pour :
 
 - Synchroniser les mots de passe entre plusieurs appareils
-- Renforcer la sécurité et les bonnes pratiques (HTTPS, JWT, hachage, reverse-proxy)
+- Renforcer la sécurité et les bonnes pratiques (HTTPS, JWT, hachage, chiffrement symétrique, reverse-proxy)
 - Se familiariser avec le déploiement d’une API sur un serveur Linux
 
 ## 🚀 Comment ça fonctionne ?
@@ -26,7 +26,7 @@ En prenant un VPS, l’idée était de passer à une base distante pour :
       ▼                                                       ▼
 [ Node.js (Express) ] ── JWT ──> middleware verifyToken ──> [ MariaDB ]
        • routes /register, /login                           • tables users, passwords
-       • routes /passwords (add, list, update, delete)      • hachage bcrypt
+       • routes /passwords (add, list, update, delete)      • hachage bcrypt, chiffrement AES
 ```
 
 ### 1.Auth
@@ -48,7 +48,7 @@ En prenant un VPS, l’idée était de passer à une base distante pour :
 
 ### 1.Cloner & installer
 ```bash
-git clone git@github.com:tonPseudo/sentipass-api.git
+git clone git@github.com:TheObtey/sentipass-api.git
 cd sentipass-api
 npm install
 ```
@@ -63,6 +63,7 @@ DB_PASSWORD=tonMotDePasseMariaDB
 DB_NAME=sentipass_db
 JWT_SECRET=uneCléTrèsSecrète
 JWT_LIFETIME=30m
+SECRET_KEY=taclésecrete
 ```
 
 ### 3.Démarrer le service
