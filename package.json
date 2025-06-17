@@ -1,13 +1,23 @@
 {
   "name": "sentipass-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "API REST sécurisée pour la gestion centralisée de mots de passe",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "password-manager",
+    "api",
+    "rest",
+    "express",
+    "security",
+    "encryption",
+    "aes",
+    "jwt"
+  ],
+  "author": "TheObtey",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
