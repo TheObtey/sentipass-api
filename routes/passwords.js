@@ -30,7 +30,6 @@ router.get('/get-passwords', verifyToken, (req, res) => {
 
 });
 
-
 router.post('/add-password', verifyToken, async (req, res) => {
     const userId = req.user.id;
     const { service, url, email, username, password, note } = req.body;
@@ -59,7 +58,6 @@ router.post('/add-password', verifyToken, async (req, res) => {
     }
 });
 
-
 router.delete('/delete-password/:id', verifyToken, (req, res) => {
     const userId = req.user.id;
     const passwordId = req.params.id;
@@ -84,6 +82,59 @@ router.delete('/delete-password/:id', verifyToken, (req, res) => {
 	res.status(200).json({ message: 'Mot de passe supprimé' });
     });
 
+});
+
+router.put('/update-password/:id', verifyToken, (req, res) => {
+	const userId = req.user.id;
+	const passwordId = req.params.id;
+	const { service, url, email, username, password, note } = req.body;
+
+	if (!passwordId) {
+		return res.status(400).json({ error: 'Vous devez préciser l\'ID du mot de passe' });
+	}
+
+	try {
+		const checkQuery = 'SELECT id FROM passwords WHERE id = ? AND user_id = ?';
+		db.query(checkQuery, [passwordId, userId], (err, result) => {
+			if (err) {
+				return res.status(500).json({ error: 'Erreur lors de la vérification', details: err });
+			}
+			if (result.length === 0) {
+				return res.status(404).json({ error: 'Mot de passe introuvable' });
+			}
+
+			const encryptedPassword = password ? encrypt(password) : null;
+
+			const updateQuery = `
+			UPDATE passwords
+			SET service = ?,
+			    url = ?,
+				email = ?,
+				username = ?,
+				password = ?,
+				note = ?
+			WHERE id = ? AND user_id = ?
+			`;
+
+			db.query(updateQuery, [
+				service || null,
+				url || null,
+				email || null,
+				username || null,
+				encryptedPassword || null,
+				note || null,
+				passwordId, userId
+			], (updateErr, result) => {
+				if (updateErr) {
+					return res.status(500).json({ error: 'Erreur lors de la mise à jour', details: updateErr });
+				}
+
+				res.status(200).json({ message: 'Mot de passe mis à jour' });
+			});
+		})
+	} catch (e) {
+		res.status(500).json({ error: 'Erreur interne', details: e });
+	}
 });
 
 module.exports = router;
