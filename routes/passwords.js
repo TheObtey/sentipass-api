@@ -58,32 +58,6 @@ router.post('/add-password', verifyToken, async (req, res) => {
     }
 });
 
-router.delete('/delete-password/:id', verifyToken, (req, res) => {
-    const userId = req.user.id;
-    const passwordId = req.params.id;
-
-    if (!passwordId) {
-	return res.status(400).json({ error: 'Vous devez préciser l\'ID du mot de passe' });
-    }
-
-    const query = `
-	DELETE FROM passwords WHERE id = ? AND user_id = ?
-    `;
-
-    db.query(query, [passwordId, userId], (err, result) => {
-	if (err) {
-	    return res.status(500).json({ error: 'Erreur lors de la suppression', details: err });
-	}
-
-	if (result.affectedRows === 0) {
-	    return res.status(404).json({ error: 'Mot de passe introuvable' });
-	}
-
-	res.status(200).json({ message: 'Mot de passe supprimé' });
-    });
-
-});
-
 router.put('/update-password/:id', verifyToken, (req, res) => {
 	const userId = req.user.id;
 	const passwordId = req.params.id;
@@ -135,6 +109,45 @@ router.put('/update-password/:id', verifyToken, (req, res) => {
 	} catch (e) {
 		res.status(500).json({ error: 'Erreur interne', details: e });
 	}
+});
+
+router.delete('/delete-password/:id', verifyToken, (req, res) => {
+    const userId = req.user.id;
+    const passwordId = req.params.id;
+
+    if (!passwordId) {
+	return res.status(400).json({ error: 'Vous devez préciser l\'ID du mot de passe' });
+    }
+
+    const query = `
+	DELETE FROM passwords WHERE id = ? AND user_id = ?
+    `;
+
+    db.query(query, [passwordId, userId], (err, result) => {
+	if (err) {
+	    return res.status(500).json({ error: 'Erreur lors de la suppression', details: err });
+	}
+
+	if (result.affectedRows === 0) {
+	    return res.status(404).json({ error: 'Mot de passe introuvable' });
+	}
+
+	res.status(200).json({ message: 'Mot de passe supprimé' });
+    });
+
+});
+
+router.delete('/delete-all-passwords', verifyToken, (req, res) => {
+	const userId = req.user.id;
+	const query = `DELETE FROM passwords WHERE user_id = ?`;
+
+	db.query(query, [userId], (err, result) => {
+		if (err) {
+			return res.status(500).json({ error: 'Erreur lors de la suppression', details: err });
+		}
+
+		res.status(200).json({ message: 'Tous les mots de passe ont été supprimés' });
+	});
 });
 
 module.exports = router;
