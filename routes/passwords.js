@@ -111,7 +111,7 @@ router.put('/update-password/:id', verifyToken, (req, res) => {
 			    url = ?,
 				email = ?,
 				username = ?,
-				password = ?,
+				password_encrypted = ?,
 				note = ?
 			WHERE id = ? AND user_id = ?
 			`;
