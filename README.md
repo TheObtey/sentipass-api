@@ -1,82 +1,156 @@
 # SentiPass API
-Une API REST légère et sécurisée pour gérer des mots de passe centralisés.
+Une API REST sécurisée pour la gestion centralisée de mots de passe.
 
 ## 🎯 Objectif
-Permettre à une application mobile (ou tout client HTTP) d’enregistrer, récupérer, modifier et supprimer des mots de passe, tout en assurant :
+Permettre à une application mobile (ou tout client HTTP) d'enregistrer, récupérer, modifier et supprimer des mots de passe, tout en assurant :
 
 - Une authentification stateless par JWT
-- Chiffrement des mots de passe utilisateurs via AES
-- La séparation des responsabilités (Express, MariaDB, reverse proxy Apache)
+- Chiffrement des mots de passe utilisateurs via AES-256-CBC
+- La séparation des responsabilités (Express, MySQL, reverse proxy)
+- Protection contre les attaques courantes
 
 ## 🤔 Pourquoi ce projet ?
-À l’origine, SentiPass stockait les données en local dans une application Android.
-En prenant un VPS, l’idée était de passer à une base distante pour :
+À l'origine, SentiPass stockait les données en local dans une application Android.
+En prenant un VPS, l'idée était de passer à une base distante pour :
 
 - Synchroniser les mots de passe entre plusieurs appareils
 - Renforcer la sécurité et les bonnes pratiques (HTTPS, JWT, hachage, chiffrement symétrique, reverse-proxy)
-- Se familiariser avec le déploiement d’une API sur un serveur Linux
+- Se familiariser avec le déploiement d'une API sur un serveur Linux
 
-## 🚀 Comment ça fonctionne ?
+## 🚀 Architecture
 ```plaintext
-[ App Android ] 
+[ Client (Mobile/Web) ] 
       │ HTTPS
       ▼
-[ sentipass.obtey.fr ]  ←─ Apache2 + SSL (reverse-proxy) ─────┐
-      │ proxy /api →                                          │
-      ▼                                                       ▼
-[ Node.js (Express) ] ── JWT ──> middleware verifyToken ──> [ MariaDB ]
-       • routes /register, /login                           • tables users, passwords
-       • routes /passwords (add, list, update, delete)      • hachage bcrypt, chiffrement AES
+[ Reverse Proxy (Apache/Nginx) ]  ←─ SSL/TLS ─────┐
+      │ proxy /api →                              │
+      ▼                                           ▼
+[ Node.js (Express) ] ── JWT ──> [ MySQL ]
+       • Routes protégées                       • Tables users, passwords
+       • Middleware de sécurité                 • Hachage bcrypt, chiffrement AES
 ```
 
-### 1.Auth
-- `POST /api/register` → création d’utilisateur
-- `POST /api/login` → génération d’un token JWT
+## 🔒 Sécurité
+- **Authentification** : JWT avec expiration configurable
+- **Hachage** : bcrypt pour les mots de passe utilisateurs
+- **Chiffrement** : AES-256-CBC pour les mots de passe stockés
+- **Protection** : Middleware de vérification de token
+- **Validation** : Vérification des entrées utilisateur
 
-### 2.JWT
-- Middleware `verifyToken` protège toutes les routes `/api/passwords/...`
+## 📡 Endpoints API
 
-### 3.CRUD Mots de passe
+### Authentification
+- `POST /register`
+  - Crée un nouveau compte utilisateur
+  - Body: `{ username, password }`
+  - Retourne: `{ message, userId }`
 
-- `POST /api/passwords/add-password`
-- `GET /api/passwords/get/:id`
-- `GET /api/passwords/get-all`
-- `PUT /api/passwords/update/:id`
-- `DELETE /api/passwords/delete/:id`
+- `POST /login`
+  - Authentifie un utilisateur
+  - Body: `{ username, password }`
+  - Retourne: `{ message, token }`
 
-## 🛠️ Mise en route rapide
+- `PUT /update-master-password`
+  - Met à jour le mot de passe principal
+  - Body: `{ oldPassword, newPassword }`
+  - Nécessite: Token JWT
 
-### 1.Cloner & installer
+- `DELETE /nuke`
+  - Supprime le compte et toutes les données associées
+  - Nécessite: Token JWT
+
+### Gestion des Mots de Passe
+- `GET /passwords/get-passwords`
+  - Récupère tous les mots de passe de l'utilisateur
+  - Nécessite: Token JWT
+  - Retourne: Liste des mots de passe déchiffrés
+
+- `POST /passwords/add-password`
+  - Ajoute un nouveau mot de passe
+  - Body: `{ service, url?, email?, username?, password, note? }`
+  - Nécessite: Token JWT
+
+- `PUT /passwords/update-password/:id`
+  - Met à jour un mot de passe existant
+  - Body: `{ service?, url?, email?, username?, password?, note? }`
+  - Nécessite: Token JWT
+
+- `DELETE /passwords/delete-password/:id`
+  - Supprime un mot de passe
+  - Nécessite: Token JWT
+
+- `DELETE /passwords/delete-all-passwords`
+  - Supprime tous les mots de passe de l'utilisateur
+  - Nécessite: Token JWT
+
+## 🛠️ Installation
+
+### Prérequis
+- Node.js (v14+)
+- MySQL (v8+)
+- npm ou yarn
+
+### 1. Cloner & installer
 ```bash
 git clone git@github.com:TheObtey/sentipass-api.git
 cd sentipass-api
 npm install
 ```
 
-### 2.Configurer les variables d’environnement
-Crée un fichier .env :
+### 2. Configuration
+Crée un fichier `.env` :
 ```ini
 PORT=3000
 DB_HOST=localhost
 DB_USER=sentipass_user
-DB_PASSWORD=tonMotDePasseMariaDB
+DB_PASSWORD=tonMotDePasseMySQL
 DB_NAME=sentipass_db
 JWT_SECRET=uneCléTrèsSecrète
 JWT_LIFETIME=30m
 SECRET_KEY=taclésecrete
 ```
 
-### 3.Démarrer le service
+### 3. Base de données
+```sql
+CREATE DATABASE sentipass_db;
+CREATE USER 'sentipass_user'@'localhost' IDENTIFIED BY 'tonMotDePasseMySQL';
+GRANT ALL PRIVILEGES ON sentipass_db.* TO 'sentipass_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 4. Démarrer le service
 ```bash
 node index.js
 ```
 
-### 4.Tester
-- `POST http://localhost:3000/api/register`
-- `POST http://localhost:3000/api/login`
-- `POST http://localhost:3000/api/passwords/add-password` (avec header Authorization)
+## 🔍 Tests
+Vous pouvez tester l'API avec des outils comme Postman ou curl :
 
-etc.
+```bash
+# Créer un compte
+curl -X POST http://localhost:3000/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"test","password":"test123"}'
 
----
-Contribuez librement ! Pull-requests et issues sont les bienvenues.
+# Se connecter
+curl -X POST http://localhost:3000/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"test","password":"test123"}'
+
+# Ajouter un mot de passe (avec le token reçu)
+curl -X POST http://localhost:3000/passwords/add-password \
+  -H "Authorization: Bearer VOTRE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"service":"github","password":"secret123"}'
+```
+
+## 🤝 Contribution
+Fait avec ❤️ par [TheObtey](https://github.com/TheObtey)
+
+Les contributions sont les bienvenues ! N'hésitez pas à :
+- Ouvrir une issue pour signaler un bug
+- Proposer une amélioration via une pull request
+- Améliorer la documentation
+
+## 📝 Licence
+ISC License - Voir le fichier [LICENSE](LICENSE) pour plus de détails.
